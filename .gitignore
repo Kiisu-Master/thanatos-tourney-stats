@@ -23,3 +23,6 @@ lammas.txt
 
 # Json
 *.json
+
+# CSV
+example.csv

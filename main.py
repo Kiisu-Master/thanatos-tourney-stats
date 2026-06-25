@@ -87,21 +87,15 @@ class JsonMethods:
                 json_str = json_str + line
         
         return json_str
-
-
+# OsuApi.get_token()
+# OsuMatches.get_matches("https://osu.ppy.sh/community/matches/121380887")
 
 # test1 = OsuMatches.get_matches("https://osu.ppy.sh/community/matches/121376300")
-test2 = JsonMethods.read_json("multi_121374117.json")
+test2 = JsonMethods.read_json("multi_121380887.json")
 test2dict = javason.loads(test2)
 
 # rich.print(test2dict)
 
-# print(test2dict["events"][2]["game"]["scores"][0]["score"])
-
-# for key, value in test2dict["events"].items():
-#     # print(key, value)
-#     if key == "detail":
-#         print(value)
 
 player_scores_dict = {}
 print(player_scores_dict)
@@ -115,7 +109,6 @@ for event in test2dict["events"]:
 
                 beatmap_id = {"beatmap_id" : event["game"]["beatmap_id"]}
                 if event["game"]["scores"] != []:
-                    print(event["game"]["scores"][0]["score"])
                     score = {"score" : event["game"]["scores"][0]["score"]}
                     user_id = {"user_id" : event["game"]["scores"][0]["user_id"]}
                 else:
