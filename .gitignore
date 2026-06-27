@@ -17,12 +17,15 @@ __pycache__/
 # OS files
 .DS_Store
 
+# .txt .py
 token.txt
 katse*
 lammas.txt
+multimatches.txt
 
 # Json
 *.json
 
 # CSV
 example.csv
+

@@ -3,6 +3,8 @@ import os
 from dotenv import load_dotenv
 import json as javason
 import re, rich
+import csv
+from time import sleep
 
 load_dotenv()
 client_id = os.getenv("CLIENT_ID")
@@ -71,9 +73,36 @@ class OsuMatches:
         json_str = javason.dumps(response_dict, indent=4)
         with open(json_file, "w") as f:
             f.write(json_str)
-        # print("json_str in OsuMatches: ", json_str) # temp
         return response_dict
 
+class OsuUsers:
+    def get_ids_from_MyDict(MyDict):
+        user_id = MyDict[1]["user_id"]
+        user_ids = []
+        for line in MyDict:
+            if user_id not in user_ids:
+                user_ids.append(user_id)
+        return user_ids
+
+    def get_users(user_ids):
+        token = OsuApi.get_token()
+        url = "https://osu.ppy.sh/api/v2/users"
+        params = {"ids[]": user_ids}
+        headersToken = {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {token}"
+        }
+        response_dict = httpclient.get(url, headers=headersToken, params=params).json()
+
+        json_file = "Users_" + str(user_ids) + ".json"
+        json_str = javason.dumps(response_dict, indent=4)
+        with open(json_file, "w") as f:
+            f.write(json_str)
+        return response_dict
+
+    def make_users_dict():
+        pass
 
 class JsonMethods:
     def write_json(json_str, json_file="test.json"):
@@ -91,30 +120,50 @@ class JsonMethods:
 # OsuMatches.get_matches("https://osu.ppy.sh/community/matches/121380887")
 
 # test1 = OsuMatches.get_matches("https://osu.ppy.sh/community/matches/121376300")
-test2 = JsonMethods.read_json("multi_121380887.json")
-test2dict = javason.loads(test2)
 
-# rich.print(test2dict)
+class DictonaryMaker:
+    def Make_scoresDict(json_file="multi_121380887.json"):
+        test2 = JsonMethods.read_json(json_file)
+        test2dict = javason.loads(test2)
+
+        # rich.print(test2dict)
+
+        player_scores_dict = {}
+        print(player_scores_dict)
+        count = 0
+
+        for event in test2dict["events"]:
+            for eventkey, eventvalue in event.items():
+                if eventkey == "detail":
+                    if eventvalue["type"] == "other":
+                        count += 1
+
+                        beatmap_id = event["game"]["beatmap_id"]
+                        if event["game"]["scores"] != []:
+                            score = event["game"]["scores"][0]["score"]
+                            user_id = event["game"]["scores"][0]["user_id"]
+                        else:
+                            score = None
+                            user_id = None
+                        player_scores_dict[count] = {"beatmap_id":beatmap_id, "score":score, "user_id":user_id}
+
+        return player_scores_dict
+
+    def Make_UserIdsDict(json_file="Users_[12401523, 14061950].json"):
+        Users_dict = JsonMethods.read_json(json_file)
+        Users_dict = javason.loads(Users_dict)
+        # rich.print(Users_dict)
+        Users_Ids_dict = {}
+        for line in Users_dict["users"]:
+            for userkey in line:
+                if userkey == "id":
+                    userid = line[userkey]
+                if userkey == "username":
+                    username = line[userkey]
+            Users_Ids_dict[userid] = username
+
+        return Users_Ids_dict   
 
 
-player_scores_dict = {}
-print(player_scores_dict)
-count = 0
 
-for event in test2dict["events"]:
-    for eventkey, eventvalue in event.items():
-        if eventkey == "detail":
-            if eventvalue["type"] == "other":
-                count += 1
-
-                beatmap_id = {"beatmap_id" : event["game"]["beatmap_id"]}
-                if event["game"]["scores"] != []:
-                    score = {"score" : event["game"]["scores"][0]["score"]}
-                    user_id = {"user_id" : event["game"]["scores"][0]["user_id"]}
-                else:
-                    score = {"score" : None}
-                    user_id = {"user_id" : None}
-                player_scores_dict[count] = [beatmap_id, score, user_id]
-
-rich.print(player_scores_dict)
-
+rich.print(DictonaryMaker.Make_scoresDict())
