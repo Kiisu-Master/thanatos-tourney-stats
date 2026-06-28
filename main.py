@@ -14,7 +14,7 @@ headers = {
     "Content-Type": "application/x-www-form-urlencoded"
 }
 
-class OsuApi:
+class OsuApi: # everything is used here
     def get_token():
         token = OsuApi.TokenFile.read_token()
         if token == "":
@@ -44,7 +44,7 @@ class OsuApi:
                 return ""
             return token
 
-class OsuMatches:
+class OsuMatches: # everything is used here
     @staticmethod
     def get_match_id(match_link="https://osu.ppy.sh/community/matches/121374117"):
         match_link = str(match_link)
@@ -84,8 +84,8 @@ class OsuMatches:
                 mutli_ids.append(OsuMatches.get_match_id(line))
         return mutli_ids
 
-class OsuUsers:
-    def get_ids_from_MyDict(MyDict):
+class OsuUsers: # basically useless class
+    def get_ids_from_MyDict(MyDict): # vihkan seda
         user_id = MyDict[1]["user_id"]
         user_ids = []
         for line in MyDict:
@@ -93,7 +93,7 @@ class OsuUsers:
                 user_ids.append(user_id)
         return user_ids
 
-    def get_users(user_ids):
+    def get_users(user_ids): # töötab, aga pole mõtet kasutada
         token = OsuApi.get_token()
         url = "https://osu.ppy.sh/api/v2/users"
         params = {"ids[]": user_ids}
@@ -113,12 +113,12 @@ class OsuUsers:
     #def make_users_dict():
 
 
-class JsonMethods:
-    def write_json(json_str, json_file="test.json"):
+class JsonMethods: #
+    def write_json(json_str, json_file="test.json"): # not used, it's aura farming
         with open(json_file, "w") as f:
             f.write(json_str)
     
-    def read_json(json_file="test.json"):
+    def read_json(json_file="test.json"): # useful
         json_str = ""
         with open(json_file, "r") as f:
             for line in f:
@@ -141,7 +141,7 @@ class JsonMethods:
 
 
 class DictonaryMaker:
-    def Make_scoresDict(json_file="multi_121380887.json"):
+    def Make_scoresDict(json_file="multi_121380887.json"): # Legacy code kappa
         test2 = JsonMethods.read_json(json_file)
         test2dict = javason.loads(test2)
 
@@ -168,7 +168,7 @@ class DictonaryMaker:
 
         return player_scores_dict
 
-    def Make_User_Id_dict(json_file="multi_121403400.json"):
+    def Make_User_Id_dict(json_file="multi_121403400.json"): # doens't work as intended
         java_str = JsonMethods.read_json(json_file)
         java_dump = javason.loads(java_str)
 
@@ -178,7 +178,7 @@ class DictonaryMaker:
                     print(user["username"])
         return
 
-    def Make_scoresDictBetter(json_file="multi_121403400.json"):
+    def Make_scoresDictBetter(json_file="multi_121403400.json"): # better verison of Make_scoresDict()
         java_str = JsonMethods.read_json(json_file)
         java_dump = javason.loads(java_str)
 
@@ -199,7 +199,7 @@ class DictonaryMaker:
                             count -= 1
         return player_scores_dict
 
-    def Make_UserIdsDict(json_file="Users_[12401523, 14061950].json"):
+    def Make_UserIdsDict(json_file="Users_[12401523, 14061950].json"): # not useful
         Users_dict = JsonMethods.read_json(json_file)
         Users_dict = javason.loads(Users_dict)
         # rich.print(Users_dict)
