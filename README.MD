@@ -28,3 +28,10 @@ Rn it can only make requests and save jsons, which is kinda meh.
 ```print(test2dict["events"][2]["game"]["scores"][0]["score"])```
 
 [events][which event (ordered)][game][scores][first thingy][score has your score lol]
+
+
+
+
+# Credits
+[Kiisu_master](https://github.com/Kiisu-Master) helped me to figure out how to do requests and helped to write some of the logic at end.
+
