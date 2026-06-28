@@ -22,6 +22,7 @@ Useful link: https://regex101.com/. Pick "Flavor: Python."
 - Make it check if x.json already exists and if does return that, else just return the request.
 
 Rn it can only make requests and save jsons, which is kinda meh.
+- Fix documentation lowkey.
 
 # Dictonaries
 ```print(test2dict["events"][2]["game"]["scores"][0]["score"])```

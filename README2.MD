@@ -11,29 +11,32 @@ This will read the token.
 
 ## OsuMatches
 ```OsuMatches.get_match_id()```  
-It will return match id. (For example: ```1234567```)  
+From match's link or match's id it will return match id. (Returns: ```1234567```)  
 ```OsuMatches.get_matches()```  
 This will make get matches request.
 You will need unexperied token.
 It also writes local json file.
-
+```OsuMatches.Make_MatchsIds_list()```
+Returns mutli_ids in a list. You get mutli matches from `multimatches.txt`.
 ## OsuUsers
 ```OsuUsers.get_ids_from_MyDict()```  
-Returns user_ids in a list. It looks them from your dictonary.
+Returns user_ids in a list. It looks them from your dictonary. <br />
 ```OsuUsers.get_users()```  
 This will make get users request.
 You will need unexperied token.
 It also writes local json file.
 
 ## JsonMethods
-```JsonMethods.write_json(json_str, json_file)```  
-Gotta use `json_str = javason.dumps(dictonary, indent=4)`
+```JsonMethods.write_json(json_str, json_file)``` <br />
+Gotta use `json_str = javason.dumps(dictonary, indent=4)`<br />
 ```JsonMethods.read_json(json_file)```  
 Returns `json_str`  
 You have to use `x = javason.loads(json_str)` to get dictonary.
 
 ## DictonaryMaker
 ```DictonaryMaker.Make_scoresDict()```  
-Returns player_scores_dict.
+Returns player_scores_dict. <br />
+```DictonaryMaker.Make_scoresDictBetter()```  
+Returns player_scores_dict. But it supports multiple players. <br />
 ```DictonaryMaker.Make_UserIdsDict()```  
-Returns Users_Ids_dict.
+Returns Users_Ids_dict. It makes dictonary with {user_id = username}

@@ -75,6 +75,15 @@ class OsuMatches:
             f.write(json_str)
         return response_dict
 
+    @staticmethod
+    def Make_MatchsIds_list(file="multimatches.txt"):
+        mutli_ids = []
+        with open(file, "r") as f:
+            for line in f:
+                line = line.strip()
+                mutli_ids.append(OsuMatches.get_match_id(line))
+        return mutli_ids
+
 class OsuUsers:
     def get_ids_from_MyDict(MyDict):
         user_id = MyDict[1]["user_id"]
@@ -101,8 +110,8 @@ class OsuUsers:
             f.write(json_str)
         return response_dict
 
-    def make_users_dict():
-        pass
+    #def make_users_dict():
+
 
 class JsonMethods:
     def write_json(json_str, json_file="test.json"):
@@ -121,6 +130,16 @@ class JsonMethods:
 
 # test1 = OsuMatches.get_matches("https://osu.ppy.sh/community/matches/121376300")
 
+# csv_file = "tabel.csv"
+# with open(csv_file, "w") as new_file:
+#     filednames = ["player","nm1","nm2","nm3","nm4","nm5","hd1","hd2","hr1","hr2","dt1","dt2","dt3","fm1","fm2","fm3"]
+    
+#     csv_writer = csv.DictWriter(new_file, filednames=filednames)
+#     csv_writer.writeheader()
+
+#     for line in 
+
+
 class DictonaryMaker:
     def Make_scoresDict(json_file="multi_121380887.json"):
         test2 = JsonMethods.read_json(json_file)
@@ -129,7 +148,7 @@ class DictonaryMaker:
         # rich.print(test2dict)
 
         player_scores_dict = {}
-        print(player_scores_dict)
+        #print(player_scores_dict)
         count = 0
 
         for event in test2dict["events"]:
@@ -149,6 +168,37 @@ class DictonaryMaker:
 
         return player_scores_dict
 
+    def Make_User_Id_dict(json_file="multi_121403400.json"):
+        java_str = JsonMethods.read_json(json_file)
+        java_dump = javason.loads(java_str)
+
+        for user in java_dump["users"]:
+            for eventkey, eventvalue in user.items():
+                if eventkey == "id":
+                    print(user["username"])
+        return
+
+    def Make_scoresDictBetter(json_file="multi_121403400.json"):
+        java_str = JsonMethods.read_json(json_file)
+        java_dump = javason.loads(java_str)
+
+        count = 0
+        player_scores_dict = {}
+        for event in java_dump["events"]:
+            for eventkey, eventvalue in event.items():
+                if eventkey == "detail":
+                    if eventvalue["type"] == "other":
+                        count += 1
+                        beatmap_id = event["game"]["beatmap_id"]
+                        if event["game"]["scores"] != []:
+                            for i in range(0, len(event["game"]["scores"])):
+                                score = event["game"]["scores"][i]["score"]
+                                user_id = event["game"]["scores"][i]["user_id"]
+                                player_scores_dict[str(count)+ "_" +str(user_id)] = {"beatmap_id":beatmap_id, "score":score, "user_id":user_id}
+                        else:
+                            count -= 1
+        return player_scores_dict
+
     def Make_UserIdsDict(json_file="Users_[12401523, 14061950].json"):
         Users_dict = JsonMethods.read_json(json_file)
         Users_dict = javason.loads(Users_dict)
@@ -162,8 +212,52 @@ class DictonaryMaker:
                     username = line[userkey]
             Users_Ids_dict[userid] = username
 
-        return Users_Ids_dict   
+        return Users_Ids_dict
+
+matchs_ids = OsuMatches.Make_MatchsIds_list()
+Usernames = {}
+for match_id in matchs_ids:
+    match_id = match_id
+    json_file = f"multi_{match_id}.json"
+    java_str = JsonMethods.read_json(json_file)
+    java_dump = javason.loads(java_str)
+
+    
+    for user in java_dump["users"]:
+        Usernames[user["id"]] = user["username"]
+
+Scores = []
+for match_id in matchs_ids:
+    Scores.append(DictonaryMaker.Make_scoresDictBetter("multi_"+str(match_id)+".json"))
+# rich.print(Scores)
+
+csv_style_dict = {}
 
 
+# for match in Scores:
+#     listike = []
+#     for count in match:
+#         listike.append(match[count]["score"])
+#         user_id = match[count]["user_id"]
+#         username = Usernames[user_id]
+#     csv_style_dict[username] = listike
+# rich.print(csv_style_dict)
 
-rich.print(DictonaryMaker.Make_scoresDict())
+csv_dict = {}
+
+for uid, u in Usernames.items():
+    csv_dict[uid] = []
+for match in Scores:
+    for user_score in match:
+        csv_dict[match[user_score]["user_id"]].append(match[user_score]["score"])
+
+csv_username_dict = {}
+for user_id in csv_dict:
+    username = Usernames[user_id]
+    csv_username_dict[username] = csv_dict[user_id]
+
+# rich.print(csv_username_dict)
+
+
+for user, scores in csv_username_dict.items():
+    print(f'"{user}",' +  ",".join(map(str, scores)))
