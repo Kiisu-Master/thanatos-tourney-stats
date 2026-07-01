@@ -61,12 +61,12 @@ class OsuAPIToken:
 
     class TokenFile:
         @staticmethod
-        def write_token(token, file="token.txt"):
+        def write_token(token: str, file="token.txt"):
             with open(file, "w", encoding="utf-8") as f:
                 f.write(token)
 
         @staticmethod
-        def read_token(file="token.txt"):
+        def read_token(file="token.txt") -> str:
             with open(file, "r", encoding="utf-8") as f:
                 return f.read()
 
@@ -83,10 +83,6 @@ class OsuMatches:
             return match_id
         else:
             raise
-
-    # @staticmethod
-    # def get_match_ids(url_list: list[str]) -> list[str]:
-    #     return list(map(OsuMatches.get_match_id, url_list))
 
     @staticmethod
     def get_match(match_link: str):
@@ -149,6 +145,7 @@ def filter_match_for_scores(match_dict):
                     else:
                         count -= 1
     return player_scores_dict
+
 
 matches = list(map(OsuMatches.get_match, TEST_MATCHES))
 
