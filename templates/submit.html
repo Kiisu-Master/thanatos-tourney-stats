@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Tourney stats result</title>
+		<style>
+			table {
+				font-family: arial, sans-serif;
+				border-collapse: collapse;
+				width: 80%;
+			}
+			
+			td, th {
+				border: 1px solid #aaaaaa;
+				text-align: left;
+				padding: 8px;
+			}
+			
+			tr:nth-child(even) {
+				background-color: #dddddd;
+			}
+		</style>
+	</head>
+	<body>
+		<table id="scores">
+			<tr>
+				{% for item in fields%}
+				<th>{{ item }}</th>
+				{% endfor %}
+			</tr>
+			{% for player, results in scores.items()%}
+			<tr>
+				<td>{{ player }}</td>
+				{% for result in results%}
+				<td>{{ result}}</td>
+				{% endfor %}
+			</tr>
+			{% endfor %}
+		</table>
+	</body>
+</html>

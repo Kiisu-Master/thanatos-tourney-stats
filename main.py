@@ -1,8 +1,13 @@
-import requests as httpclient
-import os
-from dotenv import load_dotenv
 import json
+import os
 import re
+from dataclasses import dataclass
+from typing import Any
+
+import requests as httpclient
+import rich
+from dotenv import load_dotenv
+from flask import Flask, make_response, redirect, render_template, request
 
 load_dotenv()
 CLIENT_ID = os.getenv("CLIENT_ID")
@@ -14,6 +19,8 @@ TEST_MATCHES = [
     "https://osu.ppy.sh/community/matches/121403400",
     "https://osu.ppy.sh/community/matches/121374117",
 ]
+
+app = Flask(__name__)
 
 FIELDS = [
     "player",
@@ -71,7 +78,7 @@ class OsuAPIToken:
                 return f.read()
 
 
-class OsuMatches:
+class OsuMatch:
     @staticmethod
     def get_match_id(match_link: str) -> str:
         match_link = match_link.strip()
@@ -85,8 +92,8 @@ class OsuMatches:
             raise
 
     @staticmethod
-    def get_match(match_link: str):
-        match_id = OsuMatches.get_match_id(match_link)
+    def get_match(match_link: str) -> dict[Any, Any]:
+        match_id = OsuMatch.get_match_id(match_link)
         json_file = "multi_" + str(match_id) + ".json"
         try:
             match_data = JsonMethods.read_json(json_file)
@@ -113,7 +120,7 @@ class JsonMethods:
             f.write(json_str)
 
     @staticmethod
-    def read_json(json_file="test.json"):
+    def read_json(json_file="test.json") -> dict[Any, Any]:
         json_str = ""
         with open(json_file, "r") as f:
             for line in f:
@@ -122,54 +129,84 @@ class JsonMethods:
         return data
 
 
-def filter_match_for_scores(match_dict):
-    data = match_dict
+@dataclass
+class Score:
+    beatmap_id: int
+    score: int
+    user_id: int
 
-    count = 0
-    player_scores_dict = {}
-    for event in data["events"]:
+
+def filter_match_for_scores(match: dict[Any, Any]) -> list[Score]:
+    player_scores: list[Score] = []
+    for event in match["events"]:
         for eventkey, eventvalue in event.items():
             if eventkey == "detail":
                 if eventvalue["type"] == "other":
-                    count += 1
                     beatmap_id = event["game"]["beatmap_id"]
                     if event["game"]["scores"] != []:
-                        for i in range(0, len(event["game"]["scores"])):
-                            score = event["game"]["scores"][i]["score"]
-                            user_id = event["game"]["scores"][i]["user_id"]
-                            player_scores_dict[str(count) + "_" + str(user_id)] = {
-                                "beatmap_id": beatmap_id,
-                                "score": score,
-                                "user_id": user_id,
-                            }
-                    else:
-                        count -= 1
-    return player_scores_dict
+                        for game_score in event["game"]["scores"]:
+                            score = game_score["score"]
+                            user_id = game_score["user_id"]
+                            player_scores.append(
+                                Score(
+                                    beatmap_id,
+                                    score,
+                                    user_id,
+                                )
+                            )
+    return player_scores
 
 
-matches = list(map(OsuMatches.get_match, TEST_MATCHES))
+@app.route("/")
+def index():
+    return render_template("index.html")
 
-usernames = {}
-for match in matches:
-    for user in match["users"]:
-        usernames[user["id"]] = user["username"]
 
-all_scores = []
-for match in matches:
-    all_scores.append(filter_match_for_scores(match))
+@app.route("/scores")
+def scores():
+    match_links = request.args.get("match_links")
+    wants_csv = request.args.get("wants_csv")
+    if match_links:
+        match_links = match_links.strip().split("\n")
+        if wants_csv:
+            resp = make_response(get_csv(get_scores(match_links)))
+            resp.content_type = "text/csv"
+            return resp
+        else:
+            return render_template(
+                "submit.html", scores=get_scores(match_links), fields=FIELDS
+            )
+    else:
+        return redirect("/")
 
-csv_dict = {}
 
-for uid, u in usernames.items():
-    csv_dict[uid] = []
-for match in all_scores:
-    for user_score in match:
-        csv_dict[match[user_score]["user_id"]].append(match[user_score]["score"])
+def get_scores(matches) -> dict[str, list[str]]:
+    matches = list(map(OsuMatch.get_match, matches))
 
-csv_username_dict = {}
-for user_id in csv_dict:
-    username = usernames[user_id]
-    csv_username_dict[username] = csv_dict[user_id]
+    usernames = {}
+    for match in matches:
+        for user in match["users"]:
+            usernames[user["id"]] = user["username"]
 
-for user, scores in csv_username_dict.items():
-    print(f'"{user}",' + ",".join(map(str, scores)))
+    all_scores = []
+    for match in matches:
+        for score in filter_match_for_scores(match):
+            all_scores.append(score)
+
+    result: dict[str, list[str]] = {}
+
+    for user_id, username in usernames.items():
+        result[username] = []
+        for score in all_scores:
+            if score.user_id == user_id:
+                result[username].append(str(score.score))
+
+    return result
+
+
+def get_csv(scores_dict: dict[str, list[str]]) -> str:
+    ret = ",".join(FIELDS) + "\n"
+    for user, scores in scores_dict.items():
+        ret += f'"{user}", {",".join(map(str, scores))}\n'
+
+    return ret

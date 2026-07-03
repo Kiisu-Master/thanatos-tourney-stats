@@ -1,0 +1,12 @@
+[project]
+name = "thanatos-tourney-stats"
+version = "0.1.0"
+description = "osu! Tourney statistics"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "dotenv>=0.9.9",
+    "flask>=3.1.3",
+    "requests>=2.34.2",
+    "rich>=15.0.0",
+]

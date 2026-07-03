@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Thanatos tourney stats</title>
+		<style>
+			* {
+				font-family: arial, sans-serif;
+			}
+		</style>
+	</head>
+	<body>
+		<h2>Thanatos tourney stats</h2>
+		<form action="/scores">
+			<label for="match_links">Match links list:</label><br>
+			<textarea id="match_links" name="match_links" rows="10" cols="40"></textarea><br>
+			<label for="wants_csv">Download CSV file</label><br>
+			<input type="checkbox" id="wants_csv" name="wants_csv"><br>
+			<input type="submit" value="Submit">
+		</form>
+	</body>
+</html>
