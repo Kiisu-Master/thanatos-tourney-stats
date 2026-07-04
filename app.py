@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from typing import Any
 
 import requests as httpclient
-import rich
 from dotenv import load_dotenv
 from flask import Flask, make_response, redirect, render_template, request
 
@@ -78,23 +77,25 @@ class OsuAPIToken:
                 return f.read()
 
 
-class OsuMatch:
-    @staticmethod
-    def get_match_id(match_link: str) -> str:
-        match_link = match_link.strip()
-        result = re.fullmatch(
-            r"(https://osu\.ppy\.sh/community/matches/)(\d+)", match_link
-        )
-        if result:
-            match_id = result.group(2)
-            return match_id
-        else:
-            raise
+@dataclass
+class OsuPlayer:
+    username: str
+    user_id: int
 
-    @staticmethod
-    def get_match(match_link: str) -> dict[Any, Any]:
+
+@dataclass
+class OsuScore:
+    beatmap_id: int
+    score: int
+    user_id: int
+
+
+class OsuMatch:
+    data: dict[Any, Any]
+
+    def __init__(self, match_link):
         match_id = OsuMatch.get_match_id(match_link)
-        json_file = "multi_" + str(match_id) + ".json"
+        json_file = "multi_" + match_id + ".json"
         try:
             match_data = JsonMethods.read_json(json_file)
         except FileNotFoundError:
@@ -109,7 +110,48 @@ class OsuMatch:
             match_data = httpclient.get(url, headers=headersToken).json()
             JsonMethods.write_json(match_data, json_file)
 
-        return match_data
+        self.data = match_data
+
+    @staticmethod
+    def get_match_id(match_link: str) -> str:
+        match_link = match_link.strip()
+        result = re.fullmatch(
+            r"(https://osu\.ppy\.sh/community/matches/)(\d+)", match_link
+        )
+        if result:
+            match_id = result.group(2)
+            return match_id
+        elif re.fullmatch(r"\d+", match_link):
+            return match_link
+        else:
+            raise
+
+    def get_scores(self) -> list[OsuScore]:
+        player_scores: list[OsuScore] = []
+        for event in self.data["events"]:
+            if "game" not in event:
+                continue
+            if event["game"]["scores"] == []:
+                continue
+
+            beatmap_id = event["game"]["beatmap_id"]
+            for game_score in event["game"]["scores"]:
+                score = game_score["score"]
+                user_id = game_score["user_id"]
+                player_scores.append(
+                    OsuScore(
+                        beatmap_id,
+                        score,
+                        user_id,
+                    )
+                )
+        return player_scores
+
+    def get_players(self) -> list[OsuPlayer]:
+        players = []
+        for user in self.data["users"]:
+            players.append(OsuPlayer(user["username"], user["id"]))
+        return players
 
 
 class JsonMethods:
@@ -129,84 +171,54 @@ class JsonMethods:
         return data
 
 
-@dataclass
-class Score:
-    beatmap_id: int
-    score: int
-    user_id: int
+class Server:
+    @app.route("/")
+    def index():
+        return render_template("index.html")
 
-
-def filter_match_for_scores(match: dict[Any, Any]) -> list[Score]:
-    player_scores: list[Score] = []
-    for event in match["events"]:
-        for eventkey, eventvalue in event.items():
-            if eventkey == "detail":
-                if eventvalue["type"] == "other":
-                    beatmap_id = event["game"]["beatmap_id"]
-                    if event["game"]["scores"] != []:
-                        for game_score in event["game"]["scores"]:
-                            score = game_score["score"]
-                            user_id = game_score["user_id"]
-                            player_scores.append(
-                                Score(
-                                    beatmap_id,
-                                    score,
-                                    user_id,
-                                )
-                            )
-    return player_scores
-
-
-@app.route("/")
-def index():
-    return render_template("index.html")
-
-
-@app.route("/scores")
-def scores():
-    match_links = request.args.get("match_links")
-    wants_csv = request.args.get("wants_csv")
-    if match_links:
-        match_links = match_links.strip().split("\n")
-        if wants_csv:
-            resp = make_response(get_csv(get_scores(match_links)))
-            resp.content_type = "text/csv"
-            return resp
+    @app.route("/scores")
+    def scores():
+        match_links = request.args.get("match_links")
+        wants_csv = request.args.get("wants_csv")
+        if match_links:
+            match_links = match_links.strip().split("\n")
+            if wants_csv:
+                resp = make_response(Server.get_csv(Server.get_scores(match_links)))
+                resp.content_type = "text/csv"
+                return resp
+            else:
+                return render_template(
+                    "submit.html", scores=Server.get_scores(match_links), fields=FIELDS
+                )
         else:
-            return render_template(
-                "submit.html", scores=get_scores(match_links), fields=FIELDS
-            )
-    else:
-        return redirect("/")
+            return redirect("/")
 
+    @staticmethod
+    def get_scores(match_links: list[str]) -> dict[str, list[str]]:
+        matches = list(map(OsuMatch, match_links))
 
-def get_scores(matches) -> dict[str, list[str]]:
-    matches = list(map(OsuMatch.get_match, matches))
+        players = []
+        for match in matches:
+            players.extend(match.get_players())
 
-    usernames = {}
-    for match in matches:
-        for user in match["users"]:
-            usernames[user["id"]] = user["username"]
+        all_scores = []
+        for match in matches:
+            all_scores.extend(match.get_scores())
 
-    all_scores = []
-    for match in matches:
-        for score in filter_match_for_scores(match):
-            all_scores.append(score)
+        result: dict[str, list[str]] = {}
 
-    result: dict[str, list[str]] = {}
+        for player in players:
+            result[player.username] = []
+            for score in all_scores:
+                if score.user_id == player.user_id:
+                    result[player.username].append(str(score.score))
 
-    for user_id, username in usernames.items():
-        result[username] = []
-        for score in all_scores:
-            if score.user_id == user_id:
-                result[username].append(str(score.score))
+        return result
 
-    return result
+    @staticmethod
+    def get_csv(scores_dict: dict[str, list[str]]) -> str:
+        ret = ",".join(FIELDS) + "\n"
+        for user, scores in scores_dict.items():
+            ret += f'"{user}", {",".join(map(str, scores))}\n'
 
-
-def get_csv(scores_dict: dict[str, list[str]]) -> str:
-    ret = ",".join(FIELDS) + "\n"
-    for user, scores in scores_dict.items():
-        ret += f'"{user}", {",".join(map(str, scores))}\n'
-
-    return ret
+        return ret
