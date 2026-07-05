@@ -30,11 +30,11 @@
 			<th>{{ item }}</th>
 			{% endfor %}
 		</tr>
-		{% for player, results in scores.items()%}
+		{% for player, scores in scores.items()%}
 		<tr>
-			<td>{{ player }}</td>
-			{% for result in results%}
-			<td>{{ result}}</td>
+			<td>{{ player.username }}</td>
+			{% for score in scores%}
+			<td>{{ score.score }}</td>
 			{% endfor %}
 		</tr>
 		{% endfor %}

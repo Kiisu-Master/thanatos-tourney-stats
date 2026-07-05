@@ -2,7 +2,7 @@ import json
 import os
 import re
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, override
 
 import requests as httpclient
 from dotenv import load_dotenv
@@ -81,6 +81,10 @@ class OsuAPIToken:
 class OsuPlayer:
     username: str
     user_id: int
+
+    @override
+    def __hash__(self):
+        return self.user_id
 
 
 @dataclass
@@ -179,46 +183,77 @@ class Server:
     @app.route("/scores")
     def scores():
         match_links = request.args.get("match_links")
+        map_links = request.args.get("map_links")
+        validate_maps_played: bool = bool(request.args.get("validate_maps_played"))
         wants_csv = request.args.get("wants_csv")
+
         if match_links:
             match_links = match_links.strip().split("\n")
-            if wants_csv:
-                resp = make_response(Server.get_csv(Server.get_scores(match_links)))
-                resp.content_type = "text/csv"
-                return resp
-            else:
-                return render_template(
-                    "submit.html", scores=Server.get_scores(match_links), fields=FIELDS
-                )
         else:
             return redirect("/")
 
-    @staticmethod
-    def get_scores(match_links: list[str]) -> dict[str, list[str]]:
         matches = list(map(OsuMatch, match_links))
+        map_ids = []
+        if map_links:
+            map_ids = list(map(Server.get_map_id, map_links.strip().split("\n")))
 
-        players = []
+        all_scores = Server.get_scores(matches, map_ids)
+
+        if validate_maps_played:
+            for player, scores in all_scores.items():
+                if len(scores) != len(map_ids):
+                    return f"Player {player.username} hasnt played all maps."
+
+        if wants_csv:
+            resp = make_response(Server.get_csv(all_scores))
+            resp.content_type = "text/csv"
+            return resp
+        else:
+            return render_template("submit.html", scores=all_scores, fields=FIELDS)
+
+    @staticmethod
+    def get_scores(matches: list[OsuMatch], map_ids: list[int]) -> dict[OsuPlayer, list[OsuScore]]:
+        all_players = []
         for match in matches:
-            players.extend(match.get_players())
+            all_players.extend(match.get_players())
 
         all_scores = []
         for match in matches:
             all_scores.extend(match.get_scores())
 
-        result: dict[str, list[str]] = {}
-
-        for player in players:
-            result[player.username] = []
+        result = {}
+        for player in all_players:
+            result[player] = []
             for score in all_scores:
-                if score.user_id == player.user_id:
-                    result[player.username].append(str(score.score))
+                if score.user_id == player.user_id and (map_ids == [] or score.beatmap_id in map_ids):
+                    result[player].append(score)
 
         return result
 
     @staticmethod
-    def get_csv(scores_dict: dict[str, list[str]]) -> str:
+    def get_csv(scores_dict: dict[OsuPlayer, list[OsuScore]]) -> str:
         ret = ",".join(FIELDS) + "\n"
         for user, scores in scores_dict.items():
-            ret += f'"{user}", {",".join(map(str, scores))}\n'
+            scores_str = ",".join(map(lambda s: str(s.score), scores))
+            ret += f'"{user.username}",{scores_str}\n'
 
         return ret
+
+    @staticmethod
+    def get_map_id(map_link: str) -> int:
+        map_link = map_link.strip()
+        full_link = re.fullmatch(
+            r"(https://osu\.ppy\.sh/beatmapsets/\d+#.+/)(\d+)", map_link
+        )
+        beatmap_link = re.fullmatch(
+            r"(https://osu\.ppy\.sh/beatmaps/)(\d+)",
+            map_link
+        )
+        if full_link:
+            return int(full_link.group(2))
+        elif beatmap_link:
+            return int(beatmap_link.group(2))
+        elif re.fullmatch(r"\d+", map_link):
+            return int(map_link)
+        else:
+            raise

@@ -13,6 +13,10 @@
 <body>
 	<h2>Thanatos tourney stats</h2>
 	<form action="/scores">
+		<label for="map_links">Map links/IDs to filter:</label><br>
+		<textarea id="map_links" name="map_links" rows="5" cols="40"></textarea><br>
+		<label for="validate_maps_played">Validate that all maps have been played</label><br>
+		<input type="checkbox" id="validate_maps_played" name="validate_maps_played"><br>
 		<label for="match_links">Match links/IDs list:</label><br>
 		<textarea id="match_links" name="match_links" rows="5" cols="40"></textarea><br>
 		<label for="wants_csv">Download CSV file</label><br>
