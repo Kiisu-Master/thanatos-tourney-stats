@@ -8,18 +8,11 @@ import requests as httpclient
 from dotenv import load_dotenv
 from flask import Flask, make_response, redirect, render_template, request
 
+app = Flask(__name__)
+
 load_dotenv()
 CLIENT_ID = os.getenv("CLIENT_ID")
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")
-
-TEST_MATCHES = [
-    "https://osu.ppy.sh/community/matches/121380887",
-    "https://osu.ppy.sh/community/matches/121376300",
-    "https://osu.ppy.sh/community/matches/121403400",
-    "https://osu.ppy.sh/community/matches/121374117",
-]
-
-app = Flask(__name__)
 
 FIELDS = [
     "player",
@@ -48,7 +41,7 @@ class OsuAPIToken:
             token = OsuAPIToken.TokenFile.read_token()
         except FileNotFoundError:
             print("Requesting new token")
-            response = httpclient.post(
+            resp = httpclient.post(
                 url="https://osu.ppy.sh/oauth/token",
                 headers={
                     "Accept": "application/json",
@@ -60,8 +53,9 @@ class OsuAPIToken:
                     "scope": "public",
                     "grant_type": "client_credentials",
                 },
-            ).json()
-            token = response["access_token"]
+            )
+            resp.raise_for_status()
+            token = resp.json()["access_token"]
             OsuAPIToken.TokenFile.write_token(token)
         return token
 
@@ -122,13 +116,15 @@ class OsuMatch:
         except FileNotFoundError:
             print("Downloading match ", match_id)
             token = OsuAPIToken.get_token()
-            headersToken = {
+            headers = {
                 "Accept": "application/json",
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {token}",
             }
             url = f"https://osu.ppy.sh/api/v2/matches/{match_id}"
-            match_data = httpclient.get(url, headers=headersToken).json()
+            resp = httpclient.get(url, headers=headers)
+            resp.raise_for_status()
+            match_data = resp.json()
             JsonMethods.write_json(match_data, json_file)
 
         self.data = match_data
@@ -260,7 +256,7 @@ class Server:
             return resp
         else:
             return render_template(
-                "submit.html", scores=match_set.get_score_data(map_ids), fields=FIELDS
+                "table.html", scores=match_set.get_score_data(map_ids), fields=FIELDS
             )
 
     @staticmethod

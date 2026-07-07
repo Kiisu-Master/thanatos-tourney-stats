@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block header %}
+<h1>{% block title %}Scores{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+<table id="scores">
+	<tr>
+		{% for item in fields%}
+		<th>{{ item }}</th>
+		{% endfor %}
+	</tr>
+	{% for player, scores in scores.items()%}
+	<tr>
+		<td>{{ player.username }}</td>
+		{% for score in scores%}
+		<td>{{ score.score }}</td>
+		{% endfor %}
+	</tr>
+	{% endfor %}
+</table>
+{% endblock %}

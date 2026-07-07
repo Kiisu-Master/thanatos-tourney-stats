@@ -14,8 +14,8 @@ you can start the application with these commands:
 ```sh
 uv sync
 source .venv/bin/activate
-flask run
+gunicorn app:app
 ```
-Then open the [site](http://127.0.0.1:5000) in your browser.
+Then open the [site](http://127.0.0.1:8000) in your browser.
 Add links to the multiplayer matches.
 Submit without "download CSV file" enabled to see a preview of the table in your browser.
