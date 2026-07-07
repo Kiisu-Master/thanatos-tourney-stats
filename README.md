@@ -2,7 +2,7 @@
 Tool to create a CSV table of player scores from matches
 
 ### Setup
-You need to have a working osu oauth application (you can create one (here)[https://osu.ppy.sh/home/account/edit#new-oauth-application])
+You need to have a working osu oauth application (you can create one [here](https://osu.ppy.sh/home/account/edit#new-oauth-application))
 Set up the credentials `.env` file as
 ```
 CLIENT_ID=xxxx
