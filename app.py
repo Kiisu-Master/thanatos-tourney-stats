@@ -127,20 +127,7 @@ class OsuMatch:
             resp.raise_for_status()
             return resp.json()
 
-        def get_match_id(match_link: str) -> str:
-            match_link = match_link.strip()
-            result = re.fullmatch(
-                r"(https://osu\.ppy\.sh/community/matches/)(\d+)", match_link
-            )
-            if result:
-                match_id = result.group(2)
-                return match_id
-            elif re.fullmatch(r"\d+", match_link):
-                return match_link
-            else:
-                raise
-
-        self.match_id = get_match_id(match_link)
+        self.match_id = self.get_match_id(match_link)
         json_file = "multi_" + self.match_id + ".json"
         try:
             match_data = JsonMethods.read_json(json_file)
@@ -156,6 +143,20 @@ class OsuMatch:
 
             JsonMethods.write_json(match_data, json_file)
         self.data = match_data
+
+    @staticmethod
+    def get_match_id(match_link: str) -> str:
+        match_link = match_link.strip()
+        result = re.fullmatch(
+            r"(https://osu\.ppy\.sh/community/matches/)(\d+)", match_link
+        )
+        if result:
+            match_id = result.group(2)
+            return match_id
+        elif re.fullmatch(r"\d+", match_link):
+            return match_link
+        else:
+            raise
 
     def get_scores(self) -> list[OsuScore]:
         player_scores: list[OsuScore] = []
@@ -205,14 +206,23 @@ class OsuMatchSet:
             )
             if map_ids != []:
                 for map_id in map_ids:
+                    # Remove used scores from the list (this is useful when maps repeat)
                     added = False
-                    for score in player_scores:
-                        if score.beatmap_id == map_id:
+
+                    def unused(score) -> bool:
+                        nonlocal added
+                        if score.beatmap_id == map_id and not added:
                             added = True
                             result[player].append(score)
-                            break
+                            return False
+                        return True
+
+                    player_scores = list(filter(unused, player_scores))
+
                     if not added:
                         result[player].append(None)
+                print(player.username, " orphaned scores:", player_scores)
+
             else:
                 for score in player_scores:
                     result[player].append(score)
