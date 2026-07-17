@@ -1,3 +1,4 @@
+import time
 import json
 import os
 import re
@@ -107,41 +108,54 @@ class JsonMethods:
 
 class OsuMatch:
     data: dict[Any, Any]
+    match_id: str  # This is int but used as str in urls so its saved as str
 
     def __init__(self, match_link):
-        match_id = OsuMatch.get_match_id(match_link)
-        json_file = "multi_" + match_id + ".json"
-        try:
-            match_data = JsonMethods.read_json(json_file)
-        except FileNotFoundError:
-            print("Downloading match ", match_id)
+        def get_match_data(before_event: int | None = None) -> dict[Any, Any]:
+            print("Downloading match ", self.match_id, "before ", before_event)
             token = OsuAPIToken.get_token()
             headers = {
                 "Accept": "application/json",
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {token}",
             }
-            url = f"https://osu.ppy.sh/api/v2/matches/{match_id}"
+            if before_event:
+                url = f"https://osu.ppy.sh/api/v2/matches/{self.match_id}?before={before_event}"
+            else:
+                url = f"https://osu.ppy.sh/api/v2/matches/{self.match_id}"
             resp = httpclient.get(url, headers=headers)
             resp.raise_for_status()
-            match_data = resp.json()
+            return resp.json()
+
+        def get_match_id(match_link: str) -> str:
+            match_link = match_link.strip()
+            result = re.fullmatch(
+                r"(https://osu\.ppy\.sh/community/matches/)(\d+)", match_link
+            )
+            if result:
+                match_id = result.group(2)
+                return match_id
+            elif re.fullmatch(r"\d+", match_link):
+                return match_link
+            else:
+                raise
+
+        self.match_id = get_match_id(match_link)
+        json_file = "multi_" + self.match_id + ".json"
+        try:
+            match_data = JsonMethods.read_json(json_file)
+        except FileNotFoundError:
+            match_data = get_match_data()
+
+            # Download older events if they are missing.
+            while match_data["first_event_id"] != match_data["events"][0]["id"]:
+                time.sleep(0.5)
+                first_event = match_data["events"][0]["id"]
+                # Add older events at the beginning
+                match_data["events"][:0] = get_match_data(first_event)["events"]
+
             JsonMethods.write_json(match_data, json_file)
-
         self.data = match_data
-
-    @staticmethod
-    def get_match_id(match_link: str) -> str:
-        match_link = match_link.strip()
-        result = re.fullmatch(
-            r"(https://osu\.ppy\.sh/community/matches/)(\d+)", match_link
-        )
-        if result:
-            match_id = result.group(2)
-            return match_id
-        elif re.fullmatch(r"\d+", match_link):
-            return match_link
-        else:
-            raise
 
     def get_scores(self) -> list[OsuScore]:
         player_scores: list[OsuScore] = []
