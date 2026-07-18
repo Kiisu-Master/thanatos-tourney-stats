@@ -62,12 +62,12 @@ class OsuAPIToken:
 
     class TokenFile:
         @staticmethod
-        def write_token(token: str, file="token.txt"):
+        def write_token(token: str, file: str = "token.txt") -> None:
             with open(file, "w", encoding="utf-8") as f:
                 f.write(token)
 
         @staticmethod
-        def read_token(file="token.txt") -> str:
+        def read_token(file: str = "token.txt") -> str:
             with open(file, "r", encoding="utf-8") as f:
                 return f.read()
 
@@ -78,7 +78,7 @@ class OsuPlayer:
     user_id: int
 
     @override
-    def __hash__(self):
+    def __hash__(self) -> int:
         return self.user_id
 
 
@@ -91,13 +91,13 @@ class OsuScore:
 
 class JsonMethods:
     @staticmethod
-    def write_json(dict, json_file="test.json"):
+    def write_json(dict: dict[Any, Any], json_file: str = "test.json") -> None:
         json_str = json.dumps(dict, indent=4)
         with open(json_file, "w") as f:
             f.write(json_str)
 
     @staticmethod
-    def read_json(json_file="test.json") -> dict[Any, Any]:
+    def read_json(json_file: str = "test.json") -> dict[Any, Any]:
         json_str = ""
         with open(json_file, "r") as f:
             for line in f:
@@ -110,7 +110,7 @@ class OsuMatch:
     data: dict[Any, Any]
     match_id: str  # This is int but used as str in urls so its saved as str
 
-    def __init__(self, match_link):
+    def __init__(self, match_link: str) -> None:
         def get_match_data(before_event: int | None = None) -> dict[Any, Any]:
             print("Downloading match ", self.match_id, "before ", before_event)
             token = OsuAPIToken.get_token()
@@ -180,10 +180,9 @@ class OsuMatch:
         return player_scores
 
     def get_players(self) -> list[OsuPlayer]:
-        players = []
-        for player in self.data["users"]:
-            players.append(OsuPlayer(player["username"], player["id"]))
-        return players
+        return [
+            OsuPlayer(player["username"], player["id"]) for player in self.data["users"]
+        ]
 
 
 ScoreData = dict[OsuPlayer, list[OsuScore | None]]
@@ -192,7 +191,7 @@ ScoreData = dict[OsuPlayer, list[OsuScore | None]]
 class OsuMatchSet:
     matches: list[OsuMatch]
 
-    def __init__(self, matches: list[OsuMatch]):
+    def __init__(self, matches: list[OsuMatch]) -> None:
         self.matches = matches
 
     def get_score_data(self, map_ids: list[int]) -> ScoreData:
@@ -209,11 +208,11 @@ class OsuMatchSet:
                     # Remove used scores from the list (this is useful when maps repeat)
                     added = False
 
-                    def unused(score) -> bool:
+                    def unused(score: OsuScore) -> bool:
                         nonlocal added
-                        if score.beatmap_id == map_id and not added:
+                        if score.beatmap_id == map_id and not added:  # noqa: B023
                             added = True
-                            result[player].append(score)
+                            result[player].append(score)  # noqa: B023
                             return False
                         return True
 
@@ -221,7 +220,7 @@ class OsuMatchSet:
 
                     if not added:
                         result[player].append(None)
-                print(player.username, " orphaned scores:", player_scores)
+                # print(player.username, " orphaned scores:", player_scores)
 
             else:
                 for score in player_scores:
@@ -244,9 +243,7 @@ class OsuMatchSet:
         score_data = self.get_score_data(map_ids)
         ret = ",".join(FIELDS) + "\n"
         for player, scores in score_data.items():
-            scores_str = ",".join(
-                map(lambda s: str(s.score) if s is not None else "", scores)
-            )
+            scores_str = ",".join(str(s.score) if s is not None else "" for s in scores)
             ret += f'"{player.username}",{scores_str}\n'
 
         return ret
@@ -254,11 +251,11 @@ class OsuMatchSet:
 
 class Server:
     @app.route("/")
-    def index():
+    def index() -> str:
         return render_template("index.html")
 
     @app.route("/scores")
-    def scores():
+    def scores():  # noqa: ANN201
         match_links = request.args.get("match_links")
         map_links = request.args.get("map_links")
         wants_csv = request.args.get("wants_csv")
