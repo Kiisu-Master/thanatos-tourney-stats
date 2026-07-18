@@ -19,3 +19,5 @@ gunicorn app:app
 Then open the [site](http://127.0.0.1:8000) in your browser.
 Add links to the multiplayer matches.
 Submit without "download CSV file" enabled to see a preview of the table in your browser.
+
+For debugging use `flask --debug run -p 8000` (i might remove gunicorn if i dont make this a public website, its kinda useless)
